@@ -1,0 +1,37 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Master login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Test Reports</h1>
+    <p>Master login</p>
+  </header>
+
+  <main class="login-wrap">
+    <div class="card login-card">
+      <h2>Log in</h2>
+      <p class="login-help">Only master accounts can tick the ATE check. Without logging in you can still view and search.</p>
+
+      {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
+
+      <form method="post" action="{{ url_for('login', token=token, view=view) }}">
+        <label>Username
+          <input type="text" name="username" autocomplete="username" autofocus required>
+        </label>
+        <label>Password
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="btn">Log in</button>
+        <a class="btn btn-light" href="{{ url_for('index', token=token, view=view) }}">Back</a>
+      </form>
+    </div>
+  </main>
+</body>
+</html>
+

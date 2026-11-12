@@ -1,0 +1,333 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test Reports</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Test Reports</h1>
+    <p class="notice">không phải team test thì cút</p>
+    <p>Table <code>test_reports</code> &middot; {{ overall }} records in total</p>
+  </header>
+
+  <main>
+    <div class="card">
+
+      <!-- ===== Mode buttons (add new modes in app.py -> MODES) ===== -->
+      <nav class="modes">
+        {% for key, label in modes %}
+        <a class="mode {{ 'active' if key == view else '' }}"
+           href="{{ url_for('index', view=key, **keep) }}">{{ label }}</a>
+        {% endfor %}
+
+        <div class="account">
+          {% if master %}
+          <span class="who">Master: <strong>{{ master.display_name or master.username }}</strong></span>
+          <form method="post" action="{{ url_for('logout', token=token) }}">
+            <button type="submit" class="btn btn-light btn-sm">Log out</button>
+          </form>
+          {% else %}
+          <span class="who">View only</span>
+          <a class="btn btn-light btn-sm" href="{{ url_for('login', token=token, view=view) }}">Master login</a>
+          {% endif %}
+        </div>
+      </nav>
+
+      <form class="filters {{ 'no-result' if view != 'table' else '' }}" method="get" action="{{ url_for('index') }}">
+        <input type="hidden" name="token" value="{{ token }}">
+        <input type="hidden" name="view" value="{{ view }}">
+
+        <label>PO number
+          <input type="text" name="po_number" value="{{ values.po_number }}" placeholder="e.g. 100000867850">
+        </label>
+        <label>Part number
+          <input type="text" name="part_number" value="{{ values.part_number }}" placeholder="e.g. 102430-01-VN">
+        </label>
+        <label>Serial number
+          <input type="text" name="serial_number" value="{{ values.serial_number }}" placeholder="e.g. V22970967">
+        </label>
+        {% if view == 'table' %}
+        <label>Result
+          <select name="result">
+            <option value="">All results</option>
+            {% for r in results %}
+            <option value="{{ r }}" {{ 'selected' if values.result == r else '' }}>{{ r }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% endif %}
+
+        <div class="actions">
+          <button type="submit" class="btn">Search</button>
+          <a class="btn btn-light" href="{{ url_for('index', token=token, view=view) }}">Clear</a>
+        </div>
+      </form>
+
+      {% if view == 'graph' %}
+      <!-- ===== Graph mode ===== -->
+      {% set top = [stats.total, 1] | max %}
+
+      <h3 class="chart-title">Test result</h3>
+      <section class="chart">
+        <div class="bars">
+          <div class="bar-col">
+            <span class="bar-val">{{ stats.total }}</span>
+            <div class="bar bar-total" style="height: {{ (stats.total / top * 100) | round(1) }}%"></div>
+            <span class="bar-label">Total</span>
+          </div>
+          <div class="bar-col">
+            <span class="bar-val">{{ stats['pass'] }}</span>
+            <div class="bar bar-pass" style="height: {{ (stats['pass'] / top * 100) | round(1) }}%"></div>
+            <span class="bar-label">Pass</span>
+          </div>
+          <div class="bar-col">
+            <span class="bar-val">{{ stats.fail }}</span>
+            <div class="bar bar-fail" style="height: {{ (stats.fail / top * 100) | round(1) }}%"></div>
+            <span class="bar-label">Fail</span>
+          </div>
+        </div>
+        <div class="chart-note">
+          <p>Other: <strong>{{ stats.other }}</strong>
+            {% if stats.other_detail %}(
+              {%- for name, n in stats.other_detail.items() -%}
+                {{ name }}: {{ n }}{{ ', ' if not loop.last }}
+              {%- endfor -%}
+            ){% endif %}</p>
+        </div>
+      </section>
+
+      <h3 class="chart-title">ATE check</h3>
+      <section class="chart">
+        <div class="bars">
+          <div class="bar-col">
+            <span class="bar-val">{{ stats.ate_checked }}</span>
+            <div class="bar bar-ate-yes" style="height: {{ (stats.ate_checked / top * 100) | round(1) }}%"></div>
+            <span class="bar-label">Checked</span>
+          </div>
+          <div class="bar-col">
+            <span class="bar-val">{{ stats.ate_unchecked }}</span>
+            <div class="bar bar-ate-no" style="height: {{ (stats.ate_unchecked / top * 100) | round(1) }}%"></div>
+            <span class="bar-label">Not checked</span>
+          </div>
+        </div>
+      </section>
+
+      {% else %}
+      <!-- ===== Table mode (default) ===== -->
+      {% set labels = {'ate_check': 'ATE check', 'note': 'Note'} %}
+      <div class="colpicker">
+        <span class="colpicker-title">Columns:</span>
+        {% for c in columns %}
+        <label class="colbox">
+          <input type="checkbox" class="colcheck" value="{{ c }}" {{ 'checked' if c in default_cols else '' }}> {{ labels.get(c, c) }}
+        </label>
+        {% endfor %}
+        <button type="button" class="btn btn-light btn-sm" id="colAll">All</button>
+        <button type="button" class="btn btn-light btn-sm" id="colDefault">Default</button>
+      </div>
+
+      <div class="summary">
+        Showing {{ rows|length }} of {{ total }} matching reports
+        {% if total != overall %}(filtered from {{ overall }}){% endif %}
+        &middot; page {{ page }} / {{ pages }}
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              {% for c in columns %}
+              <th data-col="{{ c }}" class="{{ '' if c in default_cols else 'col-off' }}">{{ labels.get(c, c) }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              {% for c in columns %}
+                {% if c == 'ate_check' %}
+                {% set a = ate.get(row['id']) %}
+                {% set tip = ('Verified ' ~ a.at ~ (' by ' ~ a.by if a.by else '')) if a else 'Not verified' %}
+                <td data-col="ate_check" class="ate-cell {{ '' if c in default_cols else 'col-off' }}">
+                  <input type="checkbox" class="ate-box {{ '' if can_edit else 'ate-locked' }}" data-id="{{ row['id'] }}"
+                         {{ 'checked' if a else '' }}
+                         title="{{ tip }}{{ '' if can_edit else ' (log in as master to change)' }}">
+                </td>
+                {% elif c == 'note' %}
+                {% set n = notes.get(row['id']) %}
+                <td data-col="note" class="note-cell {{ '' if c in default_cols else 'col-off' }}"
+                    title="{{ ('Last edited ' ~ n.at ~ (' by ' ~ n.by if n.by else '')) if n else '' }}">
+                  {% if can_edit %}
+                  <textarea class="note-input" rows="1" maxlength="{{ max_note_len }}" data-id="{{ row['id'] }}"
+                            placeholder="Add note...">{{ n.text if n else '' }}</textarea>
+                  <span class="note-status"></span>
+                  {% else %}
+                  <div class="note-text">{{ n.text if n else '' }}</div>
+                  {% endif %}
+                </td>
+                {% else %}
+                <td data-col="{{ c }}" class="{{ '' if c in default_cols else 'col-off' }}">{{ row[c] if row[c] is not none else '' }}</td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+            {% else %}
+            <tr><td class="empty" colspan="{{ columns|length or 1 }}">No reports match these filters.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <script>
+        (function () {
+          const DEFAULTS = {{ default_cols | tojson }};
+          const boxes = Array.from(document.querySelectorAll(".colcheck"));
+          const KEY = "visibleColumns";
+
+          function apply() {
+            const on = new Set(boxes.filter(b => b.checked).map(b => b.value));
+            document.querySelectorAll("[data-col]").forEach(el =>
+              el.classList.toggle("col-off", !on.has(el.dataset.col)));
+            try { sessionStorage.setItem(KEY, JSON.stringify([...on])); } catch (e) {}
+          }
+          function setChecked(list) {
+            const s = new Set(list);
+            boxes.forEach(b => b.checked = s.has(b.value));
+            apply();
+          }
+
+          // Remember the choice while this tab stays open (page changes, searches).
+          // A new tab / new visit starts from DEFAULTS again.
+          let saved = null;
+          try { saved = JSON.parse(sessionStorage.getItem(KEY)); } catch (e) {}
+          if (Array.isArray(saved)) setChecked(saved);
+
+          boxes.forEach(b => b.addEventListener("change", apply));
+          document.getElementById("colAll").addEventListener("click", () => setChecked(boxes.map(b => b.value)));
+          document.getElementById("colDefault").addEventListener("click", () => setChecked(DEFAULTS));
+        })();
+      </script>
+
+      <script>
+        // ATE check: save each tick/untick to the server (masters only)
+        (function () {
+          const TOKEN = {{ token | tojson }};
+          const CAN_EDIT = {{ 'true' if can_edit else 'false' }};
+          document.querySelectorAll(".ate-box").forEach(box => {
+            // Viewers: the box looks normal but cannot be changed
+            box.addEventListener("click", e => { if (!CAN_EDIT) e.preventDefault(); });
+
+            box.addEventListener("change", async () => {
+              const want = box.checked;
+              box.disabled = true;
+              try {
+                const r = await fetch("/api/ate/" + box.dataset.id + "?token=" + encodeURIComponent(TOKEN), {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ checked: want })
+                });
+                if (r.status === 401) {
+                  box.checked = !want;
+                  alert("Your master login has expired. Please log in again.");
+                  location.reload();
+                  return;
+                }
+                if (!r.ok) throw new Error("HTTP " + r.status);
+                const d = await r.json();
+                box.checked = d.checked;
+                box.title = d.checked
+                  ? "Verified " + d.checked_at + (d.checked_by ? " by " + d.checked_by : "")
+                  : "Not verified";
+              } catch (e) {
+                box.checked = !want;               // undo: it was not saved
+                alert("Could not save the ATE check (" + e.message + "). Please try again.");
+              } finally {
+                box.disabled = false;
+              }
+            });
+          });
+        })();
+      </script>
+
+      <script>
+        // Notes: masters edit (saved when you click away or press Enter), everyone else only reads
+        (function () {
+          const TOKEN = {{ token | tojson }};
+          const areas = Array.from(document.querySelectorAll(".note-input"));
+
+          function grow(ta) {                      // fit the box to its text
+            ta.style.height = "auto";
+            if (ta.scrollHeight > 0) ta.style.height = ta.scrollHeight + "px";
+          }
+          function growAll() { areas.forEach(grow); }
+
+          areas.forEach(ta => {
+            let saved = ta.value;
+            const status = ta.parentElement.querySelector(".note-status");
+            grow(ta);
+
+            ta.addEventListener("input", () => grow(ta));
+            ta.addEventListener("focus", () => grow(ta));
+            ta.addEventListener("keydown", e => {
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ta.blur(); }   // Enter = save
+              if (e.key === "Escape") { ta.value = saved; grow(ta); ta.blur(); }          // Esc = undo
+            });
+
+            ta.addEventListener("blur", async () => {
+              if (ta.value.trim() === saved.trim()) return;      // nothing changed
+              status.className = "note-status";
+              status.textContent = "Saving...";
+              ta.readOnly = true;
+              try {
+                const r = await fetch("/api/note/" + ta.dataset.id + "?token=" + encodeURIComponent(TOKEN), {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ note: ta.value })
+                });
+                if (r.status === 401) {
+                  alert("Your master login has expired. Please log in again.");
+                  location.reload();
+                  return;
+                }
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(d.error || "HTTP " + r.status);
+                ta.value = d.note;
+                saved = d.note;
+                grow(ta);
+                ta.parentElement.title = d.updated_at
+                  ? "Last edited " + d.updated_at + (d.updated_by ? " by " + d.updated_by : "") : "";
+                status.textContent = "Saved";
+                setTimeout(() => { status.textContent = ""; }, 1500);
+              } catch (e) {
+                status.className = "note-status err";
+                status.textContent = "Not saved";
+                alert("Could not save the note (" + e.message + "). Your text is still in the box; click away to try again.");
+              } finally {
+                ta.readOnly = false;
+              }
+            });
+          });
+
+          // columns shown/hidden: boxes in hidden columns cannot measure their text, so re-fit
+          document.querySelectorAll(".colcheck").forEach(c => c.addEventListener("change", () => setTimeout(growAll, 0)));
+          ["colAll", "colDefault"].forEach(id => document.getElementById(id).addEventListener("click", () => setTimeout(growAll, 0)));
+          growAll();
+        })();
+      </script>
+
+      {% if pages > 1 %}
+      <nav class="pager">
+        {% if page > 1 %}<a class="btn btn-light" href="{{ url_for('index', page=page-1, **keep) }}">&larr; Previous</a>{% endif %}
+        <span>Page {{ page }} of {{ pages }}</span>
+        {% if page < pages %}<a class="btn btn-light" href="{{ url_for('index', page=page+1, **keep) }}">Next &rarr;</a>{% endif %}
+      </nav>
+      {% endif %}
+      {% endif %}
+
+    </div>
+  </main>
+</body>
+</html>
