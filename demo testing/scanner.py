@@ -59,6 +59,12 @@ class NetworkReportScanner:
 
         print(f"\n[SCAN START] {target.path}")
 
+        # os.path.join omits the separator after a bare UNC share root
+        # (\\server\share), so os.walk would build child paths like
+        # \\server\shareFolder instead of \\server\share\Folder. A trailing
+        # backslash makes Python treat the share root as a directory.
+        walk_root = target.path.rstrip("\\/") + "\\"
+
         stats = {
             "seen": 0,
             "skipped_known": 0,
@@ -92,7 +98,7 @@ class NetworkReportScanner:
             print(f"[BATCH] Inserted {added}/{len(batch)} reports.")
 
         try:
-            for root, dirs, files in os.walk(target.path, onerror=handle_error):
+            for root, dirs, files in os.walk(walk_root, onerror=handle_error):
                 station_name = self.resolve_test_station(target, root)
 
                 for file in files:

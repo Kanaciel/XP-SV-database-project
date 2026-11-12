@@ -8,11 +8,11 @@ from scanner import NetworkReportScanner
 
 
 # Configuration
-SCAN_INTERVAL_SECONDS = 15 * 60
-FILE_DELAY_SECONDS = 0.5
+SCAN_INTERVAL_SECONDS = 30 * 60
+FILE_DELAY_SECONDS = 0.05
 
 # Start with a small test. Change to None for a full scan.
-MAX_FILES_PER_TARGET = 20
+MAX_FILES_PER_TARGET = None
 
 
 def main():
