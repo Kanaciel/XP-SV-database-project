@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local data: databases hold production test results and (encrypted)
+# share passwords. Never commit them.
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Logs
+logs/
+*.log
+
+# Secrets
+.env
+secret_key.txt
