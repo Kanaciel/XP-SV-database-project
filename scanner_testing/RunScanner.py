@@ -1,7 +1,7 @@
 """Scanner entry point: scans every enabled network target on a loop.
 
-Settings (interval, delay, DB path, ...) live in settings.py and can be
-overridden with environment variables. Logs go to logs/scanner.log.
+Settings (interval, delay, DB path, ...) are described in settings.py and
+can be changed in scanner_settings.env or with environment variables. Logs go to logs/scanner.log.
 """
 import logging
 import sys
@@ -39,6 +39,7 @@ def run_cycle(db: DatabaseManager, scanner: NetworkReportScanner) -> None:
 def main() -> int:
     setup_logging(settings.LOG_DIR, settings.LOG_LEVEL)
     log.info("Database: %s", settings.DB_PATH)
+    log.info("Settings: %s", settings.describe())
 
     try:
         # Creates the database / adds new columns if needed.

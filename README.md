@@ -42,7 +42,8 @@ report in `test_reports.db`. The web app reads that database.
 | `network_auth.py` | Logs in to a Windows share with a username and password. |
 | `manage_targets.py` | Command-line tool to add, edit, pause and remove stations and to set passwords. |
 | `config.py` | `NetworkTarget` definition, plus the starting station list (used only when the database is empty). |
-| `settings.py` | Interval, delays, paths and similar options. Each one can be overridden with an environment variable. |
+| `settings.py` | Interval, delays, paths and similar options, read from `scanner_settings.env` or environment variables. |
+| `scanner_settings.example.env` | Template for `scanner_settings.env`. |
 | `logging_setup.py` | Writes logs to the console and to `logs/scanner.log`. |
 | `tests/` | Automated tests (pytest). |
 
@@ -76,14 +77,15 @@ Do this in the **testing** folder, never in the stable one.
    python manage_targets.py list
    ```
 
-4. **Do a small trial scan.** It parses at most 5 new files per station and loops every minute:
-   ```powershell
-   $env:XPSV_MAX_FILES_PER_TARGET="5"
-   $env:XPSV_SCAN_INTERVAL_MINUTES="1"
-   python RunScanner.py
+4. **Do a small trial scan.** Create `scanner_settings.env` with these two lines (or see
+   [Settings](#settings) for environment variables), so it parses at most 5 new files per
+   station and loops every minute:
    ```
-   Watch for `Scan end: ... inserted N` and for any `ERROR` lines, then stop with **Ctrl+C**.
-   Afterwards, clear the overrides with `Remove-Item env:XPSV_*` (or close PowerShell).
+   XPSV_MAX_FILES_PER_TARGET=5
+   XPSV_SCAN_INTERVAL_MINUTES=1
+   ```
+   Then run `python RunScanner.py`. Watch for `Scan end: ... inserted N` and for any `ERROR`
+   lines, then stop with **Ctrl+C**. Delete those lines afterwards.
 
 5. **Spot-check the data**, for example the newest reports:
    ```powershell
@@ -101,7 +103,7 @@ On every start it:
 - copies the stations from `config.py` into the database, only if there are none yet;
 - encrypts any password still stored as plain text.
 
-Then it scans every enabled station, waits for the scan interval, and repeats. Stop it with
+It also logs which settings differ from the defaults. Then it scans every enabled station, waits for the scan interval, and repeats. Stop it with
 **Ctrl+C**; reports already parsed are saved before it exits.
 
 Files it has already seen are skipped without being opened, so later cycles are fast.
@@ -147,20 +149,50 @@ Tips:
 
 ## Settings
 
-Defaults live in `settings.py`. To override one, set an environment variable before starting
-(PowerShell: `$env:NAME="value"`; cmd: `set NAME=value`).
+Every setting has a default (table below). You can change them in two ways.
+
+**Option 1: settings file (recommended on the station PC).** Copy
+`scanner_settings.example.env` to `scanner_settings.env` in the scanner folder, remove the `#` in
+front of the lines you want, and change the values:
+
+```
+XPSV_SCAN_INTERVAL_MINUTES=10
+XPSV_MAX_FILES_PER_TARGET=5
+```
+
+It works no matter which terminal you use or how the scanner is started (double-click, Task
+Scheduler, ...). Restart the scanner after editing it.
+
+**Option 2: environment variables.** These apply only to the terminal window they are set in,
+and they win over the file. The syntax differs between shells, and mixing them up is the usual
+cause of errors:
+
+| Shell (prompt looks like) | Correct | Common mistake |
+|---|---|---|
+| PowerShell (`PS C:\...>`) | `$env:XPSV_SCAN_INTERVAL_MINUTES = "10"` | `set XPSV_...=10` silently does nothing in PowerShell |
+| cmd (`C:\...>`) | `set XPSV_SCAN_INTERVAL_MINUTES=10` | `$env:XPSV_...="10"` gives *"The filename, directory name, or volume label syntax is incorrect"* |
+
+To remove an override: PowerShell `Remove-Item env:XPSV_SCAN_INTERVAL_MINUTES`, cmd
+`set XPSV_SCAN_INTERVAL_MINUTES=`, or close the window.
+
+Quotes and spaces around values are ignored. Relative paths count from the scanner folder.
+At startup the log shows which settings were changed and where from, e.g.
+`Settings: XPSV_SCAN_INTERVAL_MINUTES=10 (from scanner_settings.env)`. A bad value stops the
+scanner with a one-line message such as
+`Settings error: XPSV_SCAN_INTERVAL_MINUTES must be a whole number (or None), got 'ten'`.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `XPSV_DB_PATH` | `test_reports.db` next to the scripts | database file |
 | `XPSV_LOG_DIR` | `logs\` next to the scripts | log folder |
-| `XPSV_LOG_LEVEL` | `INFO` | `DEBUG` also logs every parsed file |
+| `XPSV_LOG_LEVEL` | `info` | `debug`, `info`, `warning` or `error`; `debug` also logs every parsed file |
 | `XPSV_SCAN_INTERVAL_MINUTES` | `30` | pause between scan cycles |
 | `XPSV_FILE_DELAY_SECONDS` | `0.05` | pause after each new file (eases the load on stations) |
 | `XPSV_BATCH_SIZE` | `100` | reports saved per database commit |
 | `XPSV_MAX_FILES_PER_TARGET` | `None` (no limit) | cap on new files per station per cycle, useful for testing |
 | `XPSV_DB_BUSY_TIMEOUT` | `30` | seconds to wait if another program is writing to the database |
 | `XPSV_DPAPI_SCOPE` | `user` | `user` or `machine`, see [Passwords](#passwords) |
+| `XPSV_SETTINGS_FILE` | `scanner_settings.env` next to the scripts | use a different settings file (environment variable only) |
 
 ## The database
 
@@ -277,12 +309,13 @@ Logs are written to `logs\scanner.log` (5 files of 5 MB each, oldest deleted) an
 | `Cannot access ...` | A folder or file on the share can't be read (permissions, or the station went offline mid-scan). |
 | `Could not parse ...` | One file failed to parse; the rest continue. The file is retried next cycle. |
 | `database is locked` | Another program held the database longer than `XPSV_DB_BUSY_TIMEOUT`. |
+| `Settings error: ...` | A value in `scanner_settings.env` or an environment variable is wrong; the message says which. |
 | `Reached max_files=...` | `XPSV_MAX_FILES_PER_TARGET` is set; remove it for a full scan. |
 
 The scanner never stops because of one bad file or one unreachable station; it logs the
 error and moves on. A failed cycle is retried at the next interval.
 
-For more detail, start with `$env:XPSV_LOG_LEVEL="DEBUG"`.
+For more detail, set `XPSV_LOG_LEVEL=debug` in `scanner_settings.env`.
 
 ## Stable and testing folders
 
