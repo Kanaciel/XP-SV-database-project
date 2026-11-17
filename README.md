@@ -24,10 +24,11 @@ report in `test_reports.db`. The web app reads that database.
 6. [Passwords](#passwords)
 7. [Settings](#settings)
 8. [The database](#the-database)
-9. [Adding a data column](#adding-a-data-column)
-10. [Adding a report format](#adding-a-report-format)
-11. [Logs and troubleshooting](#logs-and-troubleshooting)
-12. [Stable and testing folders](#stable-and-testing-folders)
+9. [Sharing the database with the web app](#sharing-the-database-with-the-web-app)
+10. [Adding a data column](#adding-a-data-column)
+11. [Adding a report format](#adding-a-report-format)
+12. [Logs and troubleshooting](#logs-and-troubleshooting)
+13. [Stable and testing folders](#stable-and-testing-folders)
 
 ## Files
 
@@ -51,10 +52,23 @@ report in `test_reports.db`. The web app reads that database.
 
 You need Windows, Python 3.8+ and network access to the stations.
 
+Each program gets its own virtual environment (`.venv`) inside its folder, so the scanner
+and the web app never share or fight over package versions. Once, in the scanner folder:
+
 ```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1               # prompt now starts with (.venv)
 pip install -r requirements.txt        # beautifulsoup4, pywin32
 pip install -r requirements-dev.txt    # adds pytest, only needed for testing
 ```
+
+Activate it again in every new terminal before running anything (`.venv\Scripts\Activate.ps1`;
+in cmd: `.venv\Scripts\activate.bat`). If PowerShell refuses to run the script, run
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once. You can also skip activating and
+call the venv's Python directly: `.venv\Scripts\python.exe RunScanner.py`.
+
+Don't commit the `.venv` folder (it is per-PC and large); recreate it from `requirements.txt` instead.
+Keep `.venv/` in `.gitignore` when you turn that file back on.
 
 ## Testing a new version
 
@@ -95,6 +109,7 @@ Do this in the **testing** folder, never in the stable one.
 ## Running the scanner
 
 ```powershell
+.venv\Scripts\Activate.ps1      # if not already active, see Setup
 python RunScanner.py
 ```
 
@@ -217,6 +232,89 @@ Indexed columns (fast to search): serial numbers, PO, part, result, station and 
 
 **`network_targets`**: the stations (`path`, `test_station`, `parser_type`, `enabled`,
 `username`, and `password` encrypted).
+
+## Sharing the database with the web app
+
+The scanner and the web app (`web app/`) are separate programs. Neither imports the other's
+code; the only thing they share is `test_reports.db`. Either one can be stopped, restarted or
+upgraded without the other.
+
+```
+ scanner ──writes──►  test_reports.db  ──reads (read-only)──►  web app
+                                                                  │
+                      accounts.db, notes.db, ate_checks.db  ◄─────┘  web app's own files
+```
+
+**Who owns what**
+
+| Data | Owner | Where |
+|---|---|---|
+| Report rows (`test_reports`), stations (`network_targets`) | scanner | `test_reports.db` |
+| Logins, notes, ATE checks (everything an admin edits) | web app | its own `.db` files in `web app/` |
+
+The web app opens `test_reports.db` read-only, so it can never change a report. Admin edits
+live in the web app's own files and point at a report by its `id`. A rescan therefore never
+overwrites an admin's note or tick.
+
+**Pointing the web app at the scanner's database**
+
+Put the path in `web app\db_path.txt` (one line; relative paths are relative to `web app\`):
+
+```
+../scanner_stable/test_reports.db
+```
+
+Use `../scanner_testing/test_reports.db` while trying out a new scanner version. Instead of the file,
+the environment variable `TEST_REPORTS_DB` also works and wins over it. With neither, the web app
+falls back to `web app\test_reports.db`. On start-up it prints which file it reads, and warns if
+the file or a column it needs is missing.
+
+**Running the web app**
+
+It has its own virtual environment, in `web app\.venv`. Once:
+
+```powershell
+cd "web app"
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt                 # flask, waitress
+python manage_accounts.py add <name> --name "Full Name"   # an admin login (asks for a password)
+```
+
+Every time:
+
+```powershell
+cd "web app"
+.venv\Scripts\Activate.ps1
+python app.py
+```
+
+It serves on port 5000 to the whole network (waitress), at `http://<this PC's IP>:5000/?token=...`.
+The token is the environment variable `KO_PHAI_TEST_THI_CUT` (defaults to `123`; change it for
+real use). For development with auto-reload on `127.0.0.1` only, set `$env:DEV = "1"` first.
+Admin accounts: `python manage_accounts.py list | passwd | disable | enable | delete <name>`.
+Start the scanner and the web app in two separate terminals, each with its own venv active.
+
+**The scanner's promises** (checked by `tests/test_web_app_contract.py`; if one of those tests
+fails, the change would break the web app):
+
+1. The columns `id`, `full_serial_number`, `po_number`, `part_number`, `serial_number`,
+   `result` and `file_path` always exist. New columns are fine: the web app shows every column.
+2. A report's `id` never changes, and a deleted `id` is never handed out again. Rescans skip
+   files already stored instead of replacing them.
+3. The file stays in WAL mode, so the web app can read while the scanner writes and the
+   reverse. Both sides wait for a lock (scanner `XPSV_DB_BUSY_TIMEOUT`, web app 10 s) instead
+   of failing.
+
+**Rules that follow from this**
+
+- Run the scanner and the web app on the same PC as `test_reports.db`. WAL mode does not work
+  over a network share, so don't point either one at `\\server\...`.
+- Never delete `test_reports.db` to "start fresh". The new file would hand out the old ids to
+  other reports, and every note and ATE check would land on the wrong report. If you must,
+  delete `notes.db` and `ate_checks.db` along with it.
+- Don't copy `test_reports.db` while the scanner runs; stop it first, or copy the `-wal`
+  file along with it.
 
 ## Adding a data column
 
