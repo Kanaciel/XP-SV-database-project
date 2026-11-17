@@ -1,5 +1,6 @@
 
 import os
+import pathlib
 import secrets
 import sqlite3
 import datetime
@@ -13,7 +14,53 @@ import accounts
 app = Flask(__name__)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, "test_reports.db")
+
+
+# ---- Report database (written by the scanner, only READ here) -------------
+# Which file to read, first match wins:
+#   1. environment variable TEST_REPORTS_DB
+#   2. the first line of db_path.txt next to this file (lines starting with # are skipped)
+#   3. test_reports.db next to this file (the old behaviour)
+# A relative path is relative to this folder, e.g. ..\scanner_stable\test_reports.db
+def find_db_path():
+    path = os.environ.get("TEST_REPORTS_DB", "").strip().strip("\"'")
+    path_file = os.path.join(BASE_DIR, "db_path.txt")
+    if not path and os.path.exists(path_file):
+        with open(path_file, encoding="utf-8-sig") as f:
+            lines = [ln.strip().strip("\"'") for ln in f]
+        path = next((ln for ln in lines if ln and not ln.startswith("#")), "")
+    if not path:
+        return os.path.join(BASE_DIR, "test_reports.db")
+    path = os.path.expandvars(os.path.expanduser(path))
+    return os.path.normpath(path if os.path.isabs(path) else os.path.join(BASE_DIR, path))
+
+
+DB_PATH = find_db_path()
+# file:///D:/... form, so spaces and # in folder names cannot break the read-only URI
+DB_URI = pathlib.Path(DB_PATH).as_uri() + "?mode=ro"
+# Columns this app needs (filters + default table columns). Others are optional.
+NEEDED_COLUMNS = {"id", "full_serial_number", "result", "file_path",
+                  "po_number", "part_number", "serial_number"}
+
+
+def check_reports_db():
+    """Print a clear warning at start-up instead of an error on the first page load."""
+    print(f"Reading reports from: {DB_PATH}")
+    if not os.path.exists(DB_PATH):
+        print("  WARNING: that file does not exist yet. Start the scanner once, or fix the path.")
+        return
+    try:
+        con = sqlite3.connect(DB_URI, uri=True, timeout=10)
+        try:
+            cols = {r[1] for r in con.execute("PRAGMA table_info(test_reports)")}
+        finally:
+            con.close()
+    except sqlite3.Error as e:
+        print(f"  WARNING: cannot read it: {e}")
+        return
+    missing = NEEDED_COLUMNS - cols
+    if missing:
+        print(f"  WARNING: test_reports is missing column(s): {', '.join(sorted(missing))}")
 
 API_TOKEN = os.environ.get("KO_PHAI_TEST_THI_CUT", "123")
 PAGE_SIZE = 50
@@ -182,6 +229,7 @@ def get_ate_map(ids):
 
 
 init_ate_db()
+check_reports_db()
 
 
 def check_token():
@@ -192,7 +240,8 @@ def check_token():
 
 def connect():
     # Read-only: the web app can never modify the database
-    con = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    # timeout: wait instead of failing if the scanner is busy with the file
+    con = sqlite3.connect(DB_URI, uri=True, timeout=10)
     con.row_factory = sqlite3.Row
     return con
 

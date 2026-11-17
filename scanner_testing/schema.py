@@ -7,7 +7,9 @@ That's it: on next start the database adds the column to existing files
 automatically (ALTER TABLE), and inserts pick it up.
 
 Never rename or remove a column here; existing databases keep it. Add a new
-one instead.
+one instead. The web app reads this table too and relies on id,
+full_serial_number, po_number, part_number, serial_number, result and
+file_path (see tests/test_web_app_contract.py and README).
 """
 from dataclasses import dataclass
 from typing import Tuple

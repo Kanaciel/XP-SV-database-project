@@ -1,11 +1,16 @@
+import logging
 import os
+import re
 import time
 from pathlib import Path
+from typing import Optional
 
 from config import NetworkTarget
 from database import DatabaseManager, normalize_path
 from network_auth import connect_share
 from parsers import ReportParserFactory
+
+log = logging.getLogger(__name__)
 
 
 class NetworkReportScanner:
@@ -17,25 +22,27 @@ class NetworkReportScanner:
         # set is nearly free, so known files are skipped without being
         # opened, parsed, or throttled.
         self.known_paths = self.db.load_known_paths()
-        print(f"[STARTUP] Loaded {len(self.known_paths)} known file paths.")
+        log.info("Loaded %d known file paths.", len(self.known_paths))
 
-    def resolve_test_station(self, target: NetworkTarget, current_path: str) -> str:
-        """Determines station name from manual config, folder name, or IP."""
+    @staticmethod
+    def resolve_test_station(target: NetworkTarget, current_path: str) -> str:
+        """Station name: the configured one, else the server/IP of the share."""
         if target.test_station:
             return target.test_station
 
-        # Fallback 1: Extract IP address from UNC path
-        parts = Path(current_path).parts
-        if len(parts) > 1 and parts[0].startswith(r"\\"):
-            return parts[1]
+        # \\172.24.120.248\Reports -> "172.24.120.248". (pathlib can't be
+        # used here: it treats \\server\share as one "drive" part.)
+        match = re.match(r"^[\\/]{2}([^\\/]+)", target.path)
+        if match:
+            return match.group(1)
 
-        # Fallback 2: Directory folder name
-        return Path(current_path).name
+        # Not a UNC path (e.g. a local folder): use the folder name.
+        return Path(target.path.rstrip("\\/")).name or target.path
 
     def scan_target(
         self,
         target: NetworkTarget,
-        max_files: int = None,
+        max_files: Optional[int] = None,
         delay_seconds: float = 0.5,
     ):
         """Scan one target.
@@ -45,19 +52,26 @@ class NetworkReportScanner:
         delay_seconds is only applied after parsing a new file.
         """
         if not target.enabled:
-            print(f"[DISABLED] Skipping {target.path}")
+            log.info("Skipping disabled target %s", target.path)
             return
 
         # Reconnect every cycle: Windows drops idle SMB sessions, and
         # re-connecting to a live session is harmless.
         if target.username:
+            if not target.password:
+                log.error(
+                    "No usable password for %s (user %s). Set one with: "
+                    'python manage_targets.py set-password "%s"',
+                    target.path, target.username, target.path,
+                )
+                return
             try:
-                connect_share(target.path, target.username, target.password or "")
+                connect_share(target.path, target.username, target.password)
             except Exception as e:
-                print(f"[AUTH ERROR] {target.path}: {e}")
+                log.error("Could not log in to %s as %s: %s", target.path, target.username, e)
                 return
 
-        print(f"\n[SCAN START] {target.path}")
+        log.info("Scan start: %s", target.path)
 
         # os.path.join omits the separator after a bare UNC share root
         # (\\server\share), so os.walk would build child paths like
@@ -78,7 +92,7 @@ class NetworkReportScanner:
 
         def handle_error(err):
             stats["errors"] += 1
-            print(f"[ACCESS ERROR] {err.filename}: {err}")
+            log.warning("Cannot access %s: %s", err.filename, err)
 
         def flush():
             if not pending:
@@ -87,15 +101,15 @@ class NetworkReportScanner:
             pending.clear()
             try:
                 added = self.db.insert_reports(batch)
-            except Exception as e:
+            except Exception:
                 stats["errors"] += len(batch)
-                print(f"[DB ERROR] Batch of {len(batch)} failed: {e}")
+                log.exception("Database insert of %d reports failed", len(batch))
                 return
             stats["inserted"] += added
             stats["duplicates"] += len(batch) - added
             for row in batch:
                 self.known_paths.add(normalize_path(row["file_path"]))
-            print(f"[BATCH] Inserted {added}/{len(batch)} reports.")
+            log.info("Inserted %d/%d reports.", added, len(batch))
 
         try:
             for root, dirs, files in os.walk(walk_root, onerror=handle_error):
@@ -112,14 +126,14 @@ class NetworkReportScanner:
 
                     # Fast path: unsupported extension -> no delay.
                     try:
-                        parser = ReportParserFactory.get_parser(full_path)
+                        parser = ReportParserFactory.get_parser(full_path, target.parser_type)
                     except ValueError:
                         stats["unsupported"] += 1
                         continue
 
                     if max_files is not None and stats["parsed"] >= max_files:
-                        print("[TEST LIMIT] Maximum new-file count reached.")
-                        return
+                        log.info("Reached max_files=%d for %s.", max_files, target.path)
+                        return stats
 
                     # Slow path: new file -> parse, queue, throttle.
                     try:
@@ -127,36 +141,30 @@ class NetworkReportScanner:
                         data["test_station"] = station_name
                         stats["parsed"] += 1
                         pending.append(data)
-                        print(
-                            f"[PARSED] {data['result']} | "
-                            f"{data['file_name']} | {full_path}"
-                        )
+                        log.debug("Parsed %s | %s", data["result"], full_path)
 
                         if len(pending) >= self.batch_size:
                             flush()
 
                     except Exception as e:
                         stats["errors"] += 1
-                        print(f"[ERROR] {full_path}: {e}")
+                        log.warning("Could not parse %s: %s", full_path, e)
 
                     if delay_seconds > 0:
                         time.sleep(delay_seconds)
 
-        except Exception as e:
+        except Exception:
             stats["errors"] += 1
-            print(f"[SCAN ERROR] {target.path}: {e}")
+            log.exception("Scan of %s stopped early", target.path)
 
         finally:
             # Always write out whatever is queued, including on early
             # return (test limit), errors, or Ctrl+C.
             flush()
-            print(
-                f"[SCAN SUMMARY] Files seen: {stats['seen']} | "
-                f"Already known (skipped): {stats['skipped_known']} | "
-                f"Unsupported: {stats['unsupported']} | "
-                f"Parsed: {stats['parsed']} | "
-                f"Inserted: {stats['inserted']} | "
-                f"Duplicates: {stats['duplicates']} | "
-                f"Errors: {stats['errors']}"
+            log.info(
+                "Scan end: %s | seen %d | already known %d | unsupported %d | "
+                "parsed %d | inserted %d | duplicates %d | errors %d",
+                target.path, stats["seen"], stats["skipped_known"], stats["unsupported"],
+                stats["parsed"], stats["inserted"], stats["duplicates"], stats["errors"],
             )
-            print(f"[SCAN END] {target.path}")
+        return stats

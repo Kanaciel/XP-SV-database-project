@@ -1,0 +1,45 @@
+2026-11-17 15:47:48 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 15:47:48 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 15:47:48 [INFO] RunScanner: Encrypted 1 password(s) that were stored as plain text.
+2026-11-17 15:47:49 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 15:47:49 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 15:47:49 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 15:47:49 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 15:48:10 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 0
+2026-11-17 15:48:10 [INFO] RunScanner: Scanner stopped by user.
+2026-11-17 15:51:55 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 15:51:55 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 15:51:55 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 15:51:55 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 15:51:55 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 15:51:55 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 15:52:16 [WARNING] scanner: Cannot access \\172.24.120.248\Reports\: [WinError 53] The network path was not found: '\\\\172.24.120.248\\Reports\\'
+2026-11-17 15:52:16 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 15:52:58 [ERROR] scanner: Could not log in to \\172.24.123.61\Reports as s12674\nhr: (67, 'WNetAddConnection2', 'The network name cannot be found.')
+2026-11-17 15:52:58 [INFO] scanner: Scan start: \\172.24.122.194\Reports
+2026-11-17 15:53:19 [WARNING] scanner: Cannot access \\172.24.122.194\Reports\: [WinError 53] The network path was not found: '\\\\172.24.122.194\\Reports\\'
+2026-11-17 15:53:19 [INFO] scanner: Scan end: \\172.24.122.194\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 15:53:19 [INFO] RunScanner: Next scan cycle in 30 minutes.
+2026-11-17 15:55:24 [INFO] RunScanner: Scanner stopped by user.
+2026-11-17 15:58:33 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 15:58:33 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 15:58:33 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 15:58:33 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 15:58:33 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 15:58:33 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 15:58:54 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 0
+2026-11-17 15:58:54 [INFO] RunScanner: Scanner stopped by user.
+2026-11-17 16:00:59 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 16:00:59 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 16:01:00 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 16:01:00 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 16:01:00 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 16:01:00 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 16:03:17 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 16:03:17 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 16:03:18 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 16:03:18 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 16:03:18 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 16:03:18 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 16:03:39 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 0
+2026-11-17 16:03:39 [INFO] RunScanner: Scanner stopped by user.

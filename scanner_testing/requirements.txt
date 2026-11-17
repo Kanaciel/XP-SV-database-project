@@ -1,2 +1,0 @@
-beautifulsoup4>=4.12
-pywin32>=306; sys_platform == "win32"

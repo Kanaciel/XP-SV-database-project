@@ -1,12 +1,14 @@
 import re
 
-import pywintypes
-import win32netcon
-import win32wnet
-
 
 def connect_share(unc_path: str, username: str, password: str) -> None:
     """Open an authenticated SMB connection to \\\\server\\share (Windows only)."""
+    # Imported here so the rest of the project (and its tests) can be
+    # imported on machines without pywin32.
+    import pywintypes
+    import win32netcon
+    import win32wnet
+
     match = re.match(r"^\\\\[^\\]+\\[^\\]+", unc_path)
     if not match:
         raise ValueError(f"Not a UNC share path: {unc_path}")

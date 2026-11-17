@@ -1,0 +1,10 @@
+# Everything the scanner and the web app need. Install into the .venv in this folder:
+#   pip install -r requirements.txt
+
+# scanner
+beautifulsoup4>=4.12
+pywin32>=306; sys_platform == "win32"
+
+# web app
+flask>=3.0
+waitress>=3.0

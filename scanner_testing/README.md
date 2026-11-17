@@ -24,10 +24,11 @@ report in `test_reports.db`. The web app reads that database.
 6. [Passwords](#passwords)
 7. [Settings](#settings)
 8. [The database](#the-database)
-9. [Adding a data column](#adding-a-data-column)
-10. [Adding a report format](#adding-a-report-format)
-11. [Logs and troubleshooting](#logs-and-troubleshooting)
-12. [Stable and testing folders](#stable-and-testing-folders)
+9. [Sharing the database with the web app](#sharing-the-database-with-the-web-app)
+10. [Adding a data column](#adding-a-data-column)
+11. [Adding a report format](#adding-a-report-format)
+12. [Logs and troubleshooting](#logs-and-troubleshooting)
+13. [Stable and testing folders](#stable-and-testing-folders)
 
 ## Files
 
@@ -46,15 +47,36 @@ report in `test_reports.db`. The web app reads that database.
 | `scanner_settings.example.env` | Template for `scanner_settings.env`. |
 | `logging_setup.py` | Writes logs to the console and to `logs/scanner.log`. |
 | `tests/` | Automated tests (pytest). |
+| `..\main.py` | (project folder) Starts the scanner and/or the web app from one window. See [Running the scanner](#running-the-scanner). |
+| `..\requirements.txt` | (project folder) Packages for the scanner and the web app, installed into `..\.venv`. `requirements-dev.txt` adds pytest. |
 
 ## Setup
 
 You need Windows, Python 3.8+ and network access to the stations.
 
+Everything is installed once, into **one** virtual environment (`.venv`) in the **project
+folder** (the one holding `main.py`, `scanner_stable\`, `scanner_testing\` and `web app\`).
+The scanner and the web app share it, and the one `requirements.txt` there lists the
+packages of both. In the project folder:
+
 ```powershell
-pip install -r requirements.txt        # beautifulsoup4, pywin32
-pip install -r requirements-dev.txt    # adds pytest, only needed for testing
+python -m venv .venv
+.venv\Scripts\Activate.ps1               # prompt now starts with (.venv)
+pip install -r requirements.txt          # beautifulsoup4, pywin32, flask, waitress
+pip install -r requirements-dev.txt      # adds pytest, only needed for testing
 ```
+
+Activate it again in every new terminal before running anything (`.venv\Scripts\Activate.ps1`
+from the project folder; in cmd: `.venv\Scripts\activate.bat`). It stays active when you `cd`
+into a subfolder. If PowerShell refuses to run the script, run
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once. You can also skip activating and
+call the venv's Python directly: `.venv\Scripts\python.exe main.py`.
+
+Don't commit the `.venv` folder (it is per-PC and large); recreate it from `requirements.txt` instead.
+Keep `.venv/` in `.gitignore` when you turn that file back on.
+
+When a new package is needed, add it to the project folder's `requirements.txt` and run
+`pip install -r requirements.txt` again.
 
 ## Testing a new version
 
@@ -94,11 +116,28 @@ Do this in the **testing** folder, never in the stable one.
 
 ## Running the scanner
 
+The easy way, from the project folder with the venv active:
+
 ```powershell
+python main.py                 # scanner + web app, using scanner_stable
+python main.py --testing       # scanner + web app, using scanner_testing
+python main.py scanner         # only the scanner
+python main.py web             # only the web app
+```
+
+`main.py` starts each program as its own process, shows their output in one window
+(every line tagged `[scanner]` or `[web]`), prints the links to open the web app once it is up
+(Ctrl+click them), and points both at the same database (the scanner
+folder's `XPSV_DB_PATH`, by default its `test_reports.db`). **Ctrl+C** stops both, giving the
+scanner time to save. If one of them crashes, the other keeps running and `main.py` prints a
+warning. It never imports their code, so each still runs on its own too:
+
+```powershell
+cd scanner_stable
 python RunScanner.py
 ```
 
-On every start it:
+On every start the scanner:
 - creates the database if it doesn't exist and adds any new columns from `schema.py`;
 - copies the stations from `config.py` into the database, only if there are none yet;
 - encrypts any password still stored as plain text.
@@ -218,6 +257,86 @@ Indexed columns (fast to search): serial numbers, PO, part, result, station and 
 **`network_targets`**: the stations (`path`, `test_station`, `parser_type`, `enabled`,
 `username`, and `password` encrypted).
 
+## Sharing the database with the web app
+
+The scanner and the web app (`web app/`) are separate programs. Neither imports the other's
+code; the only thing they share is `test_reports.db`. Either one can be stopped, restarted or
+upgraded without the other.
+
+```
+ scanner ──writes──►  test_reports.db  ──reads (read-only)──►  web app
+                                                                  │
+                      accounts.db, notes.db, ate_checks.db  ◄─────┘  web app's own files
+```
+
+**Who owns what**
+
+| Data | Owner | Where |
+|---|---|---|
+| Report rows (`test_reports`), stations (`network_targets`) | scanner | `test_reports.db` |
+| Logins, notes, ATE checks (everything an admin edits) | web app | its own `.db` files in `web app/` |
+
+The web app opens `test_reports.db` read-only, so it can never change a report. Admin edits
+live in the web app's own files and point at a report by its `id`. A rescan therefore never
+overwrites an admin's note or tick.
+
+**Pointing the web app at the scanner's database**
+
+`main.py` does this for you. When you start the web app by hand, put the path in `web app\db_path.txt` (one line; relative paths are relative to `web app\`):
+
+```
+../scanner_stable/test_reports.db
+```
+
+Use `../scanner_testing/test_reports.db` while trying out a new scanner version. Instead of the file,
+the environment variable `TEST_REPORTS_DB` also works and wins over it. With neither, the web app
+falls back to `web app\test_reports.db`. On start-up it prints which file it reads, and warns if
+the file or a column it needs is missing.
+
+**Running the web app**
+
+Normally `python main.py` starts it together with the scanner (see
+[Running the scanner](#running-the-scanner)), already pointed at the right database. It uses
+the same `.venv` and `requirements.txt` as the scanner (see [Setup](#setup)).
+
+Before the first start, create an admin login (asks for a password):
+
+```powershell
+cd "web app"
+python manage_accounts.py add <name> --name "Full Name"
+```
+
+Other account commands: `python manage_accounts.py list | passwd | disable | enable | delete <name>`.
+
+To start only the web app: `python main.py web`, or `python app.py` inside `web app\` (it then
+reads the database named in `db_path.txt`).
+
+It serves on port 5000 to the whole network (waitress), at `http://<this PC's IP>:5000/?token=...`.
+The token is the environment variable `KO_PHAI_TEST_THI_CUT` (defaults to `123`; change it for
+real use). For development with auto-reload on `127.0.0.1` only, set `$env:DEV = "1"` first and
+run `python app.py` directly.
+
+**The scanner's promises** (checked by `tests/test_web_app_contract.py`; if one of those tests
+fails, the change would break the web app):
+
+1. The columns `id`, `full_serial_number`, `po_number`, `part_number`, `serial_number`,
+   `result` and `file_path` always exist. New columns are fine: the web app shows every column.
+2. A report's `id` never changes, and a deleted `id` is never handed out again. Rescans skip
+   files already stored instead of replacing them.
+3. The file stays in WAL mode, so the web app can read while the scanner writes and the
+   reverse. Both sides wait for a lock (scanner `XPSV_DB_BUSY_TIMEOUT`, web app 10 s) instead
+   of failing.
+
+**Rules that follow from this**
+
+- Run the scanner and the web app on the same PC as `test_reports.db`. WAL mode does not work
+  over a network share, so don't point either one at `\\server\...`.
+- Never delete `test_reports.db` to "start fresh". The new file would hand out the old ids to
+  other reports, and every note and ATE check would land on the wrong report. If you must,
+  delete `notes.db` and `ate_checks.db` along with it.
+- Don't copy `test_reports.db` while the scanner runs; stop it first, or copy the `-wal`
+  file along with it.
+
 ## Adding a data column
 
 1. Add one line to `REPORT_COLUMNS` in `schema.py`:
@@ -322,8 +441,9 @@ For more detail, set `XPSV_LOG_LEVEL=debug` in `scanner_settings.env`.
 - `scanner_stable/` holds the code that is known to work. This is the one that runs day to day.
 - `scanner_testing/` holds new or changed code being tried out, with its own copy of the database.
 
-To promote a tested version, stop the stable scanner and copy the testing folder's `.py` files,
-`tests\` and `requirements*.txt` over the stable folder. Keep the stable `test_reports.db`;
+To promote a tested version, stop the stable scanner and copy the testing folder's `.py` files
+and `tests\` over the stable folder (if the new code needs a new package, it is already in the
+project folder's `requirements.txt`; run `pip install -r requirements.txt`). Keep the stable `test_reports.db`;
 it is upgraded automatically on the next start. Then start it again.
 
 Databases, logs and `secret_key.txt` are in `.gitignore` and are never committed.

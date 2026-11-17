@@ -1,0 +1,4 @@
+# Which report database the web app reads (written by the scanner).
+# One path; relative paths start from this "web app" folder.
+# Testing: ../scanner_testing/test_reports.db    Day to day: ../scanner_stable/test_reports.db
+../scanner_testing/test_reports.db

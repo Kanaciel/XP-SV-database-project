@@ -1,0 +1,9 @@
+2026-11-17 15:59:50 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_testing\test_reports.db
+2026-11-17 15:59:50 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_testing\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 15:59:50 [INFO] RunScanner: Encrypted 1 password(s) that were stored as plain text.
+2026-11-17 15:59:50 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 15:59:50 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 15:59:50 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 15:59:50 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 16:00:11 [WARNING] scanner: Cannot access \\172.24.120.248\Reports\: [WinError 53] The network path was not found: '\\\\172.24.120.248\\Reports\\'
+2026-11-17 16:00:11 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1

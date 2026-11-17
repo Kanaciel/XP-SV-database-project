@@ -1,71 +1,83 @@
-import time
-from pathlib import Path
-from datetime import datetime
+"""Scanner entry point: scans every enabled network target on a loop.
 
+Settings (interval, delay, DB path, ...) are described in settings.py and
+can be changed in scanner_settings.env or with environment variables. Logs go to logs/scanner.log.
+"""
+import logging
+import sys
+import time
+
+import settings
 from config import TARGET_CONFIGS
+from credentials import CredentialError
 from database import DatabaseManager
+from logging_setup import setup_logging
 from scanner import NetworkReportScanner
 
-
-# Configuration
-SCAN_INTERVAL_SECONDS = 30 * 60
-FILE_DELAY_SECONDS = 0.05
-
-# Start with a small test. Change to None for a full scan.
-MAX_FILES_PER_TARGET = None
+log = logging.getLogger("RunScanner")
 
 
-def main():
-    # Store the database alongside this script, regardless
-    # of which directory the terminal was opened in.
-    project_dir = Path(__file__).resolve().parent
-    db_path = project_dir / "test_reports.db"
+def run_cycle(db: DatabaseManager, scanner: NetworkReportScanner) -> None:
+    # Re-read targets every cycle so edits to the table (new IPs, changed
+    # passwords, enable/disable) apply without restarting the scanner.
+    targets = db.get_targets()
+    if not targets:
+        log.warning("No network targets in the database. Add one with manage_targets.py.")
 
-    print(f"[STARTUP] Database: {db_path}")
+    for target in targets:
+        try:
+            scanner.scan_target(
+                target,
+                max_files=settings.MAX_FILES_PER_TARGET,
+                delay_seconds=settings.FILE_DELAY_SECONDS,
+            )
+        except Exception:
+            # One broken target must never stop the others.
+            log.exception("Unexpected error while scanning %s", target.path)
 
-    # Creates the database and tables if they do not exist.
-    db = DatabaseManager(str(db_path))
 
-    # First run only: copy the targets from config.py into the database.
+def main() -> int:
+    setup_logging(settings.LOG_DIR, settings.LOG_LEVEL)
+    log.info("Database: %s", settings.DB_PATH)
+    log.info("Settings: %s", settings.describe())
+
+    try:
+        # Creates the database / adds new columns if needed.
+        db = DatabaseManager(settings.DB_PATH, busy_timeout=settings.DB_BUSY_TIMEOUT_SECONDS)
+    except Exception:
+        log.exception("Could not open the database; stopping.")
+        return 1
+
     seeded = db.seed_targets_if_empty(TARGET_CONFIGS)
     if seeded:
-        print(f"[STARTUP] Seeded {seeded} network targets from config.py.")
+        log.info("Seeded %d network targets from config.py.", seeded)
 
-    scanner = NetworkReportScanner(db)
+    try:
+        migrated = db.encrypt_legacy_passwords()
+        if migrated:
+            log.info("Encrypted %d password(s) that were stored as plain text.", migrated)
+    except CredentialError as e:
+        log.warning("Plain-text passwords are still in the database: %s", e)
 
-    print("[STARTUP] Scanner is running. Press Ctrl+C to stop.")
+    scanner = NetworkReportScanner(db, batch_size=settings.BATCH_SIZE)
+    log.info("Scanner is running. Press Ctrl+C to stop.")
 
     try:
         while True:
-            scan_started = datetime.now()
-            print(
-                f"\n[{scan_started:%Y-%m-%d %H:%M:%S}] "
-                "Starting scan cycle."
-            )
+            log.info("Starting scan cycle.")
+            try:
+                run_cycle(db, scanner)
+            except Exception:
+                # e.g. the database is briefly unavailable. Keep the
+                # service alive and try again next cycle.
+                log.exception("Scan cycle failed; will retry next cycle.")
 
-            # Re-read targets every cycle so edits to the table
-            # (new IPs, changed passwords, enable/disable) apply
-            # without restarting the scanner.
-            targets = db.get_targets()
-            if not targets:
-                print("[WARNING] No network targets in the database.")
-
-            for target in targets:
-                scanner.scan_target(
-                    target,
-                    max_files=MAX_FILES_PER_TARGET,
-                    delay_seconds=FILE_DELAY_SECONDS,
-                )
-
-            print(
-                f"\n[WAIT] Next scan cycle in "
-                f"{SCAN_INTERVAL_SECONDS // 60} minutes."
-            )
-            time.sleep(SCAN_INTERVAL_SECONDS)
-
+            log.info("Next scan cycle in %d minutes.", settings.SCAN_INTERVAL_SECONDS // 60)
+            time.sleep(settings.SCAN_INTERVAL_SECONDS)
     except KeyboardInterrupt:
-        print("\n[SHUTDOWN] Scanner stopped by user.")
+        log.info("Scanner stopped by user.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
