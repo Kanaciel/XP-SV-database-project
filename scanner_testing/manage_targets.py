@@ -11,15 +11,19 @@ appear in code, in git, or in your terminal history.
     python manage_targets.py enable  "\\\\172.24.122.194\\Reports"
     python manage_targets.py delete  "\\\\172.24.122.194\\Reports"
     python manage_targets.py encrypt-existing   # one-off: encrypt old plain-text passwords
+    python manage_targets.py check              # can this PC log in to every station?
+    python manage_targets.py check "\\\\172.24.123.61\\Reports"
 """
 import argparse
 import getpass
+import logging
 import sys
 
 import settings
 from config import NetworkTarget
 from credentials import CredentialError
 from database import DatabaseManager
+from network_auth import is_accessible
 from parsers import ReportParserFactory
 
 
@@ -83,6 +87,29 @@ def cmd_delete(db, args):
     print(f"Deleted {args.path}.")
 
 
+def cmd_check(db, args):
+    """Try to reach each station exactly as the scanner would, and say why not."""
+    from scanner import NetworkReportScanner  # only needed here
+    logging.basicConfig(level=logging.INFO, format="  %(levelname)s: %(message)s")
+    targets = [t for t in db.get_targets() if args.path in (None, t.path)]
+    if not targets:
+        sys.exit(f"No target with path {args.path}." if args.path else "No targets.")
+    with_pw = db.paths_with_password()
+    for t in targets:
+        print(f"\n{t.path}   user={t.username or '(none)'}{'' if t.enabled else '   (disabled)'}")
+        if t.path not in with_pw:
+            print("  stored password: none")
+        elif t.password:
+            print("  stored password: set, readable on this PC")
+        else:
+            print("  stored password: set, but NOT readable here (saved on another PC or "
+                  "Windows account). Run set-password again on this PC.")
+        print("  Windows already logged in to it: " + ("yes" if is_accessible(t.path) else "no"))
+        ok = NetworkReportScanner.ensure_access(t) and is_accessible(t.path)
+        print("  RESULT: " + ("OK, the scanner can read this folder." if ok else
+                              "NOT OK, see the message above."))
+
+
 def cmd_encrypt_existing(db, args):
     n = db.encrypt_legacy_passwords()
     print(f"Encrypted {n} plain-text password(s).")
@@ -110,6 +137,8 @@ def main(argv=None):
         sub.add_parser(name, help=help_text).add_argument("path")
 
     sub.add_parser("encrypt-existing", help="encrypt passwords still stored as plain text")
+    sub.add_parser("check", help="test logging in to every station (or one)").add_argument(
+        "path", nargs="?", default=None)
 
     args = parser.parse_args(argv)
     db = DatabaseManager(args.db)
@@ -121,6 +150,7 @@ def main(argv=None):
         "disable": lambda d, a: cmd_enable(d, a, False),
         "delete": cmd_delete,
         "encrypt-existing": cmd_encrypt_existing,
+        "check": cmd_check,
     }
     try:
         handlers[args.command](db, args)

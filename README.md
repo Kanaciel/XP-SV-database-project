@@ -160,6 +160,7 @@ You **don't need to restart** the scanner after a change; it re-reads the list e
 | Add a station with a login | `python manage_targets.py add "\\172.24.125.10\Reports" --station "Chroma 3" --username "172.24.125.10\scanner"` (it asks for the password) |
 | Rename a station / change its user | Run `add` again with the same path and only the options you want to change. Press Enter at the password prompt to keep the current one. |
 | Change a password | `python manage_targets.py set-password "\\172.24.123.61\Reports"` |
+| Test the logins from this PC | `python manage_targets.py check` (all stations) or `check "<path>"` (one) |
 | Pause / resume a station | `python manage_targets.py disable "<path>"` / `enable "<path>"` |
 | Remove a station | `python manage_targets.py delete "<path>"` (its reports stay in the database) |
 | Change a station's IP / path | `delete` the old path, then `add` the new one |
@@ -185,6 +186,19 @@ Tips:
 - Older databases with plain-text passwords are encrypted automatically at startup. You can
   also do it by hand with `python manage_targets.py encrypt-existing`.
 - `list` only ever shows `password=set` or `password=none`, never the password itself.
+
+**Logging in to a station.** Each cycle the scanner handles two cases:
+
+| This PC... | What happens |
+|---|---|
+| has **never logged in** to the station | It logs in with the stored username and password. Without a usable stored password the station is skipped, and the log says to run `set-password`. |
+| is **already logged in** (opened in Explorer, a mapped drive, or credentials saved in Windows Credential Manager) | It just reads the folder; no stored password is needed. If a stored password is wrong, it logs a warning and still scans. |
+
+On a new PC (or after copying `test_reports.db` from another PC), the stored passwords can't
+be read there. Either run `set-password` for each station on that PC, or log in to the station
+once in Explorer with "Remember my credentials" ticked. Then run `python manage_targets.py check`:
+it shows, per station, whether a password is stored and readable, whether Windows is already
+logged in, and whether the scanner can read the folder.
 
 ## Settings
 
@@ -422,9 +436,12 @@ Logs are written to `logs\scanner.log` (5 files of 5 MB each, oldest deleted) an
 
 | Log message | Meaning / fix |
 |---|---|
-| `No usable password for ...` | The station has a username but no password, or it couldn't be decrypted. Run `set-password`. |
+| `No usable password for ... and Windows is not logged in to it` | No password stored on this PC, or it was saved on another PC/account. Run `set-password` on this PC (see [Passwords](#passwords)), then `check`. |
+| `using the existing Windows login` | Info only: no stored password, but Windows is already logged in, so it scans. |
+| `Login to ... failed ..., but Windows is already logged in` | The stored password is wrong but the scan still works through the existing login. Fix it with `set-password` before that login expires. |
+| `Cannot reach ...` | The station is off, unplugged, or the IP/share name is wrong (Windows error 53 or 67). |
 | `Could not decrypt a stored password` | It was saved by another Windows account or PC. Run `set-password` again as the scanner's account. |
-| `Could not log in to ...` | Wrong username or password, or the station is off or unreachable. |
+| `Could not log in to ...` | The message says why, e.g. `wrong username or password (Windows error 1326)`. Usernames look like `<station PC name or IP>\<user>`. |
 | `Cannot access ...` | A folder or file on the share can't be read (permissions, or the station went offline mid-scan). |
 | `Could not parse ...` | One file failed to parse; the rest continue. The file is retried next cycle. |
 | `database is locked` | Another program held the database longer than `XPSV_DB_BUSY_TIMEOUT`. |

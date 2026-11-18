@@ -7,6 +7,7 @@ def test_target_with_username_but_no_password_is_skipped(tmp_path, monkeypatch):
     import scanner as scanner_mod
     called = []
     monkeypatch.setattr(scanner_mod, "connect_share", lambda *a: called.append(a))
+    monkeypatch.setattr(scanner_mod, "is_accessible", lambda p: False)
     s = NetworkReportScanner(DatabaseManager(tmp_path / "t.db"))
     s.scan_target(NetworkTarget(path=r"\\h\R", username="u"))
     assert called == []

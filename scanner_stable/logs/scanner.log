@@ -43,3 +43,54 @@
 2026-11-17 16:03:18 [INFO] scanner: Scan start: \\172.24.120.248\Reports
 2026-11-17 16:03:39 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 0
 2026-11-17 16:03:39 [INFO] RunScanner: Scanner stopped by user.
+2026-11-17 16:05:08 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 16:05:08 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 16:05:08 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 16:05:08 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 16:05:08 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 16:05:08 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 16:05:29 [WARNING] scanner: Cannot access \\172.24.120.248\Reports\: [WinError 53] The network path was not found: '\\\\172.24.120.248\\Reports\\'
+2026-11-17 16:05:29 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 16:06:11 [ERROR] scanner: Could not log in to \\172.24.123.61\Reports as s12674\nhr: (67, 'WNetAddConnection2', 'The network name cannot be found.')
+2026-11-17 16:06:11 [INFO] scanner: Scan start: \\172.24.122.194\Reports
+2026-11-17 16:06:32 [WARNING] scanner: Cannot access \\172.24.122.194\Reports\: [WinError 53] The network path was not found: '\\\\172.24.122.194\\Reports\\'
+2026-11-17 16:06:32 [INFO] scanner: Scan end: \\172.24.122.194\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 16:06:32 [INFO] RunScanner: Next scan cycle in 30 minutes.
+2026-11-17 16:07:12 [INFO] RunScanner: Scanner stopped by user.
+2026-11-17 16:07:58 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 16:07:58 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 16:07:58 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 16:07:58 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 16:07:58 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 16:07:58 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 16:08:19 [WARNING] scanner: Cannot access \\172.24.120.248\Reports\: [WinError 53] The network path was not found: '\\\\172.24.120.248\\Reports\\'
+2026-11-17 16:08:19 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 16:09:02 [ERROR] scanner: Could not log in to \\172.24.123.61\Reports as s12674\nhr: (67, 'WNetAddConnection2', 'The network name cannot be found.')
+2026-11-17 16:09:02 [INFO] scanner: Scan start: \\172.24.122.194\Reports
+2026-11-17 16:09:23 [WARNING] scanner: Cannot access \\172.24.122.194\Reports\: [WinError 53] The network path was not found: '\\\\172.24.122.194\\Reports\\'
+2026-11-17 16:09:23 [INFO] scanner: Scan end: \\172.24.122.194\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 16:09:23 [INFO] RunScanner: Next scan cycle in 30 minutes.
+2026-11-17 16:11:05 [INFO] RunScanner: Scanner stopped by user.
+2026-11-17 16:11:52 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 16:11:52 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 16:11:53 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 16:11:53 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 16:11:53 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 16:11:53 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 16:12:14 [WARNING] scanner: Cannot access \\172.24.120.248\Reports\: [WinError 64] The specified network name is no longer available: '\\\\172.24.120.248\\Reports\\'
+2026-11-17 16:12:14 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 16:12:50 [INFO] RunScanner: Scanner stopped by user.
+2026-11-17 16:12:59 [INFO] RunScanner: Database: D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db
+2026-11-17 16:12:59 [INFO] RunScanner: Settings: XPSV_BATCH_SIZE=100 (from scanner_settings.env); XPSV_DB_BUSY_TIMEOUT=30 (from scanner_settings.env); XPSV_DB_PATH=D:\class VGU edition\Internship\Database Managment Project\XP-SV-database-project\scanner_stable\test_reports.db (from environment); XPSV_DPAPI_SCOPE=user (from scanner_settings.env); XPSV_FILE_DELAY_SECONDS=0.05 (from scanner_settings.env); XPSV_LOG_DIR=logs (from scanner_settings.env); XPSV_LOG_LEVEL=info (from scanner_settings.env); XPSV_MAX_FILES_PER_TARGET=None (from scanner_settings.env); XPSV_SCAN_INTERVAL_MINUTES=30 (from scanner_settings.env)
+2026-11-17 16:12:59 [INFO] scanner: Loaded 92025 known file paths.
+2026-11-17 16:12:59 [INFO] RunScanner: Scanner is running. Press Ctrl+C to stop.
+2026-11-17 16:12:59 [INFO] RunScanner: Starting scan cycle.
+2026-11-17 16:12:59 [INFO] scanner: Scan start: \\172.24.120.248\Reports
+2026-11-17 16:13:20 [WARNING] scanner: Cannot access \\172.24.120.248\Reports\: [WinError 53] The network path was not found: '\\\\172.24.120.248\\Reports\\'
+2026-11-17 16:13:20 [INFO] scanner: Scan end: \\172.24.120.248\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 16:14:03 [ERROR] scanner: Could not log in to \\172.24.123.61\Reports as s12674\nhr: (67, 'WNetAddConnection2', 'The network name cannot be found.')
+2026-11-17 16:14:03 [INFO] scanner: Scan start: \\172.24.122.194\Reports
+2026-11-17 16:14:24 [WARNING] scanner: Cannot access \\172.24.122.194\Reports\: [WinError 53] The network path was not found: '\\\\172.24.122.194\\Reports\\'
+2026-11-17 16:14:24 [INFO] scanner: Scan end: \\172.24.122.194\Reports | seen 0 | already known 0 | unsupported 0 | parsed 0 | inserted 0 | duplicates 0 | errors 1
+2026-11-17 16:14:24 [INFO] RunScanner: Next scan cycle in 30 minutes.
+2026-11-17 16:15:38 [INFO] RunScanner: Scanner stopped by user.

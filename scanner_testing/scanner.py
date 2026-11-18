@@ -7,7 +7,7 @@ from typing import Optional
 
 from config import NetworkTarget
 from database import DatabaseManager, normalize_path
-from network_auth import connect_share
+from network_auth import UNREACHABLE, ShareLoginError, connect_share, is_accessible
 from parsers import ReportParserFactory
 
 log = logging.getLogger(__name__)
@@ -39,6 +39,54 @@ class NetworkReportScanner:
         # Not a UNC path (e.g. a local folder): use the folder name.
         return Path(target.path.rstrip("\\/")).name or target.path
 
+    @staticmethod
+    def ensure_access(target: NetworkTarget) -> bool:
+        """Log in to the target's share if needed. False = skip this target.
+
+        Works both when this PC has never logged in to that computer (uses
+        the stored password) and when Windows is already logged in to it
+        (Explorer, a mapped drive, Credential Manager): then no stored
+        password is needed, and a wrong one doesn't block the scan.
+        """
+        if not target.username:
+            return True  # no login configured; os.walk reports any problem
+
+        set_pw = f'python manage_targets.py set-password "{target.path}"'
+        if target.password:
+            # Log in every cycle: Windows drops idle SMB sessions, and
+            # logging in to a live session is harmless.
+            try:
+                connect_share(target.path, target.username, target.password)
+                return True
+            except ShareLoginError as e:
+                if e.winerror in UNREACHABLE:
+                    log.error("Cannot reach %s: %s", target.path, e)
+                    return False
+                if is_accessible(target.path):
+                    log.warning(
+                        "Login to %s as %s failed (%s), but Windows is already logged in "
+                        "to it, so scanning anyway. Fix the stored password with: %s",
+                        target.path, target.username, e, set_pw)
+                    return True
+                log.error("Could not log in to %s as %s: %s", target.path, target.username, e)
+                return False
+            except Exception as e:  # e.g. pywin32 missing
+                log.error("Could not log in to %s as %s: %s", target.path, target.username, e)
+                return False
+
+        # No usable stored password: never set on this PC, or saved by
+        # another PC / Windows account so it can't be decrypted here.
+        if is_accessible(target.path):
+            log.info("No stored password for %s; using the existing Windows login to it.",
+                     target.path)
+            return True
+        log.error(
+            "No usable password for %s (user %s) and Windows is not logged in to it. "
+            "A password saved on another PC or Windows account can't be read here; "
+            "set it on this PC, as the account that runs the scanner, with: %s",
+            target.path, target.username, set_pw)
+        return False
+
     def scan_target(
         self,
         target: NetworkTarget,
@@ -55,21 +103,8 @@ class NetworkReportScanner:
             log.info("Skipping disabled target %s", target.path)
             return
 
-        # Reconnect every cycle: Windows drops idle SMB sessions, and
-        # re-connecting to a live session is harmless.
-        if target.username:
-            if not target.password:
-                log.error(
-                    "No usable password for %s (user %s). Set one with: "
-                    'python manage_targets.py set-password "%s"',
-                    target.path, target.username, target.path,
-                )
-                return
-            try:
-                connect_share(target.path, target.username, target.password)
-            except Exception as e:
-                log.error("Could not log in to %s as %s: %s", target.path, target.username, e)
-                return
+        if not self.ensure_access(target):
+            return
 
         log.info("Scan start: %s", target.path)
 
